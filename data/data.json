@@ -1,0 +1,11 @@
+{
+  "bet":{
+    "buy_price": 3.88,
+    "sell_price": 4.03,
+    "average_buy": 0
+  },
+  "simulate_balance": {
+
+  },
+  "step": 0
+}
