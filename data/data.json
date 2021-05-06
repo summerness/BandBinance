@@ -1,11 +1,20 @@
 {
-  "bet":{
-    "buy_price": 3.88,
-    "sell_price": 4.03,
-    "average_buy": 0
+  "bet": {
+    "buy_price": 1.6739001,
+    "sell_price": 1.6974999,
+    "average_buy": 1.68654285,
+    "step": 1
   },
   "simulate_balance": {
-
+    "money": 94.9429,
+    "coin": 21,
+    "holding_money": 5.0571,
+    "holding_coin": 0
   },
-  "step": 0
+  "profit": {
+    "sell_ratio": 0.7,
+    "buy_ratio": 0.7,
+    "quantity": 3,
+    "start_price": 1.6856
+  }
 }
