@@ -141,7 +141,7 @@ func (p *PriceData) ToTrade() {
 					Type(binance.OrderTypeLimit).Quantity(sellQuantity).Price(sellPrice).Do(context.Background())
 				if err != nil {
 					fmt.Println(err)
-					return
+					continue
 				}
 			}
 			p.ModifyPrice(price, 0, "Sell", each.Type)
@@ -151,7 +151,7 @@ func (p *PriceData) ToTrade() {
 			if config.Simulate == true {
 				if p.Spend > p.SiL.Money { //没钱了
 					p.ModifyPrice(each.BuyAverage, 0, "Sell", each.Type)
-					return
+					continue
 				}
 				go p.simBuy(price,each.Type)
 				go p.simSell(each.SellPrice,each.Type)
@@ -164,13 +164,13 @@ func (p *PriceData) ToTrade() {
 		} else if each.SellPrice <= price {
 			if each.Step == 0 {
 				p.ModifyPrice(price, 0, "Sell", each.Type)
-				return
+				continue
 			}
 			//模拟Sell
 			if config.Simulate == true {
 				if quantity > p.SiL.Coin { //没币了
 					p.ModifyPrice(each.SellAverage, 0, "Buy", each.Type)
-					return
+					continue
 				}
 				go p.simBuy(each.BuyPrice,each.Type)
 				go p.simSell(price,each.Type)
@@ -178,8 +178,8 @@ func (p *PriceData) ToTrade() {
 				go p.realBuy(each.BuyPrice)
 				go p.realSell(price)
 			}
+			p.ModifyPrice(price, -1, "Sell", each.Type)
 		}
-		p.ModifyPrice(price, -1, "Sell", each.Type)
 	}
 	time.Sleep(time.Minute)
 }
