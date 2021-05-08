@@ -18,8 +18,8 @@ import (
 type Bet struct {
 	BuyPrice     float64 `json:"buy_price"`
 	SellPrice    float64 `json:"sell_price"`
-	BuyQuantity  float64 `json:"buy_quantity"`
-	SellQuantity float64 `json:"sell_quantity"`
+	BuyAverage  float64 `json:"buy_average"`
+	SellAverage float64 `json:"sell_average"`
 	Step         int     `json:"step"`
 	Type         int     `json:"type"`
 }
@@ -87,12 +87,12 @@ func (p *PriceData) ToTrade() {
 	quantity := round(p.Spend/price, p.LimitQ)
 
 	for _, each := range p.Bs {
-		if price >= p.SetupPrice*1.1{
+		if price >= p.SetupPrice*1.1 {
 			saved_coin := p.SiL.Coin - p.O.OriCoin
-			reals := price * saved_coin* (1 - config.Fee/100)
-			if config.Simulate == true{
-				go data.InsertOne("Sell", price, quantity, reals, saved_coin,100)
-			}else {
+			reals := price * saved_coin * (1 - config.Fee/100)
+			if config.Simulate == true {
+				go data.InsertOne("Sell", price, quantity, reals, saved_coin, 100)
+			} else {
 				sellQuantity := strconv.FormatFloat(saved_coin, 'E', -1, 64)
 				sellPrice := strconv.FormatFloat(price, 'E', -1, 64)
 				_, err := client.NewCreateOrderService().Symbol(config.Symbol).Side(binance.SideTypeSell).
@@ -110,9 +110,10 @@ func (p *PriceData) ToTrade() {
 			if config.Simulate == true {
 				realQuantity := quantity * (1 - config.Fee/100) //真实买到的
 				if p.Spend > p.SiL.Money { //没钱了
+					p.ModifyPrice(each.BuyAverage, 0, "Sell", each.Type)
 					return
 				}
-				go data.InsertOne("Buy", price, quantity, price, realQuantity,each.Type)
+				go data.InsertOne("Buy", price, quantity, price, realQuantity, each.Type)
 				p.SiL.Money -= p.Spend
 				p.SiL.HoldingMoney += p.Spend
 			} else {
@@ -127,7 +128,7 @@ func (p *PriceData) ToTrade() {
 			}
 
 		} else if each.SellPrice <= price {
-			if each.Step == 0{
+			if each.Step == 0 {
 				p.ModifyPrice(price, 0, "Sell", each.Type)
 				return
 			}
@@ -135,10 +136,11 @@ func (p *PriceData) ToTrade() {
 			//模拟Sell
 			if config.Simulate == true {
 				if quantity > p.SiL.Coin { //没币了
+					p.ModifyPrice(each.SellAverage, 0, "Buy", each.Type)
 					return
 				}
 				realPrice := p.Spend * (1 - config.Fee/100)
-				go data.InsertOne("Sell", price, quantity, realPrice, quantity,each.Type)
+				go data.InsertOne("Sell", price, quantity, realPrice, quantity, each.Type)
 				p.SiL.Coin -= quantity
 				p.SiL.HoldingCoin += quantity
 			} else {
@@ -156,12 +158,22 @@ func (p *PriceData) ToTrade() {
 	time.Sleep(time.Minute)
 }
 
+
+
+
 func (p *PriceData) ModifyPrice(dealPrice float64, step int, tradeType string, bType int) {
 	rightSize := len(strings.Split(strconv.FormatFloat(dealPrice, 'E', -1, 64), ".")[1])
 	for index, each := range p.Bs {
 		if each.Type == bType {
-			p.Bs[index].BuyPrice = round(dealPrice*(1-config.NetRa[each.Type]/100), rightSize)
-			p.Bs[index].SellPrice = round(dealPrice*(1+config.NetRa[each.Type]/100), rightSize)
+			if tradeType == "Buy" {
+				p.Bs[index].BuyAverage = (p.Bs[index].BuyAverage + p.Bs[index].BuyPrice)/2
+				p.Bs[index].BuyPrice = round(dealPrice*(1-config.NetRa[each.Type]/100), rightSize)
+				p.Bs[index].SellPrice = round(dealPrice*(1-config.NetRa[each.Type]/100), rightSize)
+			} else {
+				p.Bs[index].SellAverage = (p.Bs[index].SellAverage + p.Bs[index].SellPrice)/2
+				p.Bs[index].BuyPrice = round(dealPrice*(1+config.NetRa[each.Type]/100), rightSize)
+				p.Bs[index].SellPrice = round(dealPrice*(1+config.NetRa[each.Type]/100), rightSize)
+			}
 			p.Bs[index].Step += step
 			break
 		}

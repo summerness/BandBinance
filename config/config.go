@@ -2,8 +2,8 @@ package config
 
 var (
 	DataPath  = "./data/data.json"
-	ApiKey    = ""
-	SecretKey = ""
+	ApiKey    = "Bu3dG7d8vsxr9EdCFNfJRZ6QN53Ujvw7g97KOqsQRgcqoueXhRSO3eFVvZD0k1Qy"
+	SecretKey = "JtiLkP4wn83s68o9RHaKxIt5LuWYrKnNBZ42gXUbZPoaMsnVT5Duj6pmJvcBoPyl"
 	Symbol = "XRPUSDT"
 	Fee = 0.1
 	Simulate = true
