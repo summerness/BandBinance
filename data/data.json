@@ -1,20 +1,57 @@
 {
-  "bet": {
-    "buy_price": 1.6739001,
-    "sell_price": 1.6974999,
-    "average_buy": 1.68654285,
-    "step": 1
-  },
+  "bets": [
+    {
+      "buy_price": 1.58265714,
+      "sell_price": 1.62760076,
+      "buy_quantity": 0,
+      "sell_quantity": 0,
+      "step": 0,
+      "type": 4
+    },
+    {
+      "buy_price": 1.57302637,
+      "sell_price": 1.63723153,
+      "buy_quantity": 0,
+      "sell_quantity": 0,
+      "step": 0,
+      "type": 5
+    },
+    {
+      "buy_price": 1.5907122,
+      "sell_price": 1.5970878,
+      "buy_quantity": 0,
+      "sell_quantity": 0,
+      "step": 1,
+      "type": 1
+    },
+    {
+      "buy_price": 1.5843366,
+      "sell_price": 1.6034634,
+      "buy_quantity": 0,
+      "sell_quantity": 0,
+      "step": 1,
+      "type": 2
+    },
+    {
+      "buy_price": 1.58907766,
+      "sell_price": 1.62118024,
+      "buy_quantity": 0,
+      "sell_quantity": 0,
+      "step": 0,
+      "type": 3
+    }
+  ],
   "simulate_balance": {
-    "money": 94.9429,
-    "coin": 21,
-    "holding_money": 5.0571,
+    "money": 95,
+    "coin": 20,
+    "holding_money": 5,
     "holding_coin": 0
   },
-  "profit": {
-    "sell_ratio": 0.7,
-    "buy_ratio": 0.7,
-    "quantity": 3,
-    "start_price": 1.6856
+  "spend": 5,
+  "setup_price": 1.60512895,
+  "limitq": 1,
+  "ori": {
+    "ori_money": 100,
+    "ori_coin": 20
   }
 }

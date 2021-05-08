@@ -13,9 +13,9 @@ func init() {
 	db, _ = sql.Open("sqlite3", "data/trade.db")
 }
 
-func InsertOne(tradeType string, price, coin, real_price, real_coin float64) {
-	stmt, _ := db.Prepare("INSERT INTO trade(trade_type, price, coin, real_price,real_coin) values(?,?,?,?,?)")
-	stmt.Exec(tradeType, price, coin, real_price, real_coin)
+func InsertOne(tradeType string, price, coin, real_price, real_coin float64, btype int) {
+	stmt, _ := db.Prepare("INSERT INTO trade(trade_type, price, coin, real_price,real_coin,type) values(?,?,?,?,?,?)")
+	stmt.Exec(tradeType, price, coin, real_price, real_coin, btype)
 }
 
 type Trade struct {

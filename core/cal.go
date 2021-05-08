@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/adshao/go-binance/v2"
-	"github.com/adshao/go-binance/v2/futures"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -17,17 +16,12 @@ import (
 )
 
 type Bet struct {
-	BuyPrice   float64 `json:"buy_price"`
-	SellPrice  float64 `json:"sell_price"`
-	AverageBuy float64 `json:"average_buy"`
-	Step       int     `json:"step"`
-}
-
-type Profit struct {
-	SellRa     float64 `json:"sell_ratio"`
-	BuyRa      float64 `json:"buy_ratio"`
-	Quantity   float64 `json:"quantity"`
-	StartPrice float64 `json:"start_price"`
+	BuyPrice     float64 `json:"buy_price"`
+	SellPrice    float64 `json:"sell_price"`
+	BuyQuantity  float64 `json:"buy_quantity"`
+	SellQuantity float64 `json:"sell_quantity"`
+	Step         int     `json:"step"`
+	Type         int     `json:"type"`
 }
 
 type SimulateBalance struct {
@@ -37,33 +31,28 @@ type SimulateBalance struct {
 	HoldingCoin  float64 `json:"holding_coin"`
 }
 
+type Ori struct {
+	OriMoney float64 `json:"ori_money"`
+	OriCoin  float64 `json:"ori_coin"`
+}
+
 type PriceData struct {
-	E   Bet             `json:"bet"`
-	SiL SimulateBalance `json:"simulate_balance"`
-	P   Profit          `json:"profit"`
+	Bs         []Bet           `json:"bets"`
+	SiL        SimulateBalance `json:"simulate_balance"`
+	Spend      float64         `json:"spend"`
+	SetupPrice float64         `json:"setup_price"`
+	LimitQ     int             `json:"limitq"`
+	O          Ori             `json:"ori"`
 }
 
 var (
-	client  *binance.Client
-	fclient *futures.Client
+	client *binance.Client
 )
 
 func init() {
 	client = binance.NewClient(config.ApiKey, config.SecretKey)
-	fclient = binance.NewFuturesClient(config.ApiKey, config.SecretKey)
-	fclient.BaseURL = "https://www.binance.com/api/v1"
 	logger.Setup()
 	//client.BaseURL = "https://api.binance.cc"
-}
-
-func (p *PriceData) changeRatio() {
-	ht := Hours24Tickers()
-	if ht > 10 {
-		p.P.BuyRa = p.P.BuyRa * (1 - float64(p.E.Step)*0.01)
-	}
-	if ht < - 10 {
-		p.P.SellRa = p.P.SellRa * (1 + float64(p.E.Step)*0.01)
-	}
 }
 
 func (p *PriceData) ToTrade() {
@@ -73,6 +62,7 @@ func (p *PriceData) ToTrade() {
 		return
 	}
 	price, _ := strconv.ParseFloat(curSymbol[0].Price, 64)
+	// 模拟收益
 	if config.Simulate == true {
 		tras := data.UpdateDeal(price)
 		for _, each := range tras {
@@ -87,81 +77,97 @@ func (p *PriceData) ToTrade() {
 		if len(tras) != 0 {
 			total_coin := p.SiL.Coin + p.SiL.HoldingCoin
 			total_money := p.SiL.Money + p.SiL.HoldingMoney + total_coin*price
-			origin_money := 100 + 21*p.P.StartPrice
+			origin_money := 100 + 21*p.SetupPrice
 			profit := total_money / origin_money
-			coin_w := p.P.StartPrice/price
+			coin_w := p.SetupPrice / price
 			logger.Info(fmt.Sprintf("剩余钱：%f, 剩余币：%f, 订单中的钱：%f, 订单中的币：%f, 如果现在平仓盈利：%f, 币价格涨幅：%f",
-				p.SiL.Money, p.SiL.Coin, p.SiL.HoldingMoney, p.SiL.HoldingCoin, profit,coin_w))
+				p.SiL.Money, p.SiL.Coin, p.SiL.HoldingMoney, p.SiL.HoldingCoin, profit, coin_w))
 		}
 	}
-	quantity := strconv.FormatFloat(p.P.Quantity, 'E', -1, 64)
-	if p.E.BuyPrice >= price {
-		buyPrice := strconv.FormatFloat(price, 'E', -1, 64)
-		if config.Simulate != true {
-			_, err := client.NewCreateOrderService().Symbol(config.Symbol).Side(binance.SideTypeBuy).
-				Type(binance.OrderTypeLimit).Price(buyPrice).Quantity(quantity).Do(context.Background())
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-		} else {
-			realPrice := price * p.P.Quantity
-			realQuantity := p.P.Quantity * (1 - config.Fee/100)
-			if realPrice > p.SiL.Money{
-				p.ModifyPrice(price,0,"Buy")
-				return
-			}
+	quantity := round(p.Spend/price, p.LimitQ)
 
-
-			go data.InsertOne("Buy", price, p.P.Quantity, realPrice, realQuantity)
-			p.SiL.Money -= realPrice
-			p.SiL.HoldingMoney += realPrice
-		}
-		p.ModifyPrice(price, 1, "Buy")
-	} else if p.E.SellPrice < price {
-		if p.E.Step == 0 {
-			p.ModifyPrice(price, 0, "Sell")
-		} else {
-			if config.Simulate != true {
-				sellPrice := strconv.FormatFloat(p.E.SellPrice, 'E', -1, 64)
+	for _, each := range p.Bs {
+		if price >= p.SetupPrice*1.1{
+			saved_coin := p.SiL.Coin - p.O.OriCoin
+			reals := price * saved_coin* (1 - config.Fee/100)
+			if config.Simulate == true{
+				go data.InsertOne("Sell", price, quantity, reals, saved_coin,100)
+			}else {
+				sellQuantity := strconv.FormatFloat(saved_coin, 'E', -1, 64)
+				sellPrice := strconv.FormatFloat(price, 'E', -1, 64)
 				_, err := client.NewCreateOrderService().Symbol(config.Symbol).Side(binance.SideTypeSell).
-					Type(binance.OrderTypeLimit).Quantity(quantity).Price(sellPrice).Do(context.Background())
+					Type(binance.OrderTypeLimit).Quantity(sellQuantity).Price(sellPrice).Do(context.Background())
 				if err != nil {
 					fmt.Println(err)
 					return
 				}
+			}
+			p.ModifyPrice(price, 0, "Sell", each.Type)
+		}
+		if each.BuyPrice >= price {
+			p.ModifyPrice(price, 1, "Buy", each.Type)
+			//模拟Buy
+			if config.Simulate == true {
+				realQuantity := quantity * (1 - config.Fee/100) //真实买到的
+				if p.Spend > p.SiL.Money { //没钱了
+					return
+				}
+				go data.InsertOne("Buy", price, quantity, price, realQuantity,each.Type)
+				p.SiL.Money -= p.Spend
+				p.SiL.HoldingMoney += p.Spend
 			} else {
-				{
-					realPrice := price * p.P.Quantity * (1 - config.Fee/100)
-					realQuantity := p.P.Quantity
-					if realQuantity > p.SiL.Coin{
-						p.ModifyPrice(price,-1,"Sell")
-						return
-					}
-
-
-					p.SiL.Coin -= p.P.Quantity
-					p.SiL.HoldingCoin += p.P.Quantity
-					go data.InsertOne("Sell", price, realQuantity, realPrice, realQuantity)
-
+				buyQuantity := strconv.FormatFloat(quantity, 'E', -1, 64)
+				buyPrice := strconv.FormatFloat(each.BuyPrice, 'E', -1, 64)
+				_, err := client.NewCreateOrderService().Symbol(config.Symbol).Side(binance.SideTypeBuy).
+					Type(binance.OrderTypeLimit).Price(buyPrice).Quantity(buyQuantity).Do(context.Background())
+				if err != nil {
+					fmt.Println(err)
+					return
 				}
 			}
-			p.ModifyPrice(price, -1, "Sell")
+
+		} else if each.SellPrice <= price {
+			if each.Step == 0{
+				p.ModifyPrice(price, 0, "Sell", each.Type)
+				return
+			}
+			p.ModifyPrice(price, -1, "Sell", each.Type)
+			//模拟Sell
+			if config.Simulate == true {
+				if quantity > p.SiL.Coin { //没币了
+					return
+				}
+				realPrice := p.Spend * (1 - config.Fee/100)
+				go data.InsertOne("Sell", price, quantity, realPrice, quantity,each.Type)
+				p.SiL.Coin -= quantity
+				p.SiL.HoldingCoin += quantity
+			} else {
+				sellQuantity := strconv.FormatFloat(quantity, 'E', -1, 64)
+				sellPrice := strconv.FormatFloat(each.SellPrice, 'E', -1, 64)
+				_, err := client.NewCreateOrderService().Symbol(config.Symbol).Side(binance.SideTypeSell).
+					Type(binance.OrderTypeLimit).Quantity(sellQuantity).Price(sellPrice).Do(context.Background())
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+			}
 		}
 	}
+	time.Sleep(time.Minute)
 }
 
-func (p *PriceData) ModifyPrice(dealPrice float64, step int, tradeType string) {
+func (p *PriceData) ModifyPrice(dealPrice float64, step int, tradeType string, bType int) {
 	rightSize := len(strings.Split(strconv.FormatFloat(dealPrice, 'E', -1, 64), ".")[1])
-	p.E.BuyPrice = round(dealPrice*(1-p.P.BuyRa/100), rightSize)
-	p.E.SellPrice = round(dealPrice*(1+p.P.SellRa/100), rightSize)
-	p.E.Step += step
-	if tradeType == "Buy" {
-		p.E.AverageBuy = (dealPrice*(1+config.Fee/100) + p.E.AverageBuy) / 2
+	for index, each := range p.Bs {
+		if each.Type == bType {
+			p.Bs[index].BuyPrice = round(dealPrice*(1-config.NetRa[each.Type]/100), rightSize)
+			p.Bs[index].SellPrice = round(dealPrice*(1+config.NetRa[each.Type]/100), rightSize)
+			p.Bs[index].Step += step
+			break
+		}
 	}
 	//p.changeRatio()
 	p.save()
-	time.Sleep(time.Minute)
 }
 
 func InitPriceData() (p *PriceData) {

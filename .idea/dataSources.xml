@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="SQLite - trade.sqlite" uuid="164a8c2a-992f-4232-8974-62665281c56a">
+    <data-source source="LOCAL" name="trade" uuid="11deb0a1-55e8-457e-b22d-ce95e772a11b">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/data/trade.db</jdbc-url>
-      <working-dir>$ProjectFileDir$</working-dir>
+      <driver-properties>
+        <property name="enable_load_extension" value="true" />
+      </driver-properties>
     </data-source>
   </component>
 </project>
