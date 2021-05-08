@@ -113,7 +113,7 @@ func (p *PriceData) ToTrade() {
 					p.ModifyPrice(each.BuyAverage, 0, "Sell", each.Type)
 					return
 				}
-				go data.InsertOne("Buy", price, quantity, price, realQuantity, each.Type)
+				go data.InsertOne("Buy", price, quantity, p.Spend, realQuantity, each.Type)
 				p.SiL.Money -= p.Spend
 				p.SiL.HoldingMoney += p.Spend
 			} else {
@@ -168,10 +168,8 @@ func (p *PriceData) ModifyPrice(dealPrice float64, step int, tradeType string, b
 			if tradeType == "Buy" {
 				p.Bs[index].BuyAverage = (p.Bs[index].BuyAverage + p.Bs[index].BuyPrice)/2
 				p.Bs[index].BuyPrice = round(dealPrice*(1-config.NetRa[each.Type]/100), rightSize)
-				p.Bs[index].SellPrice = round(dealPrice*(1-config.NetRa[each.Type]/100), rightSize)
 			} else {
 				p.Bs[index].SellAverage = (p.Bs[index].SellAverage + p.Bs[index].SellPrice)/2
-				p.Bs[index].BuyPrice = round(dealPrice*(1+config.NetRa[each.Type]/100), rightSize)
 				p.Bs[index].SellPrice = round(dealPrice*(1+config.NetRa[each.Type]/100), rightSize)
 			}
 			p.Bs[index].Step += step
