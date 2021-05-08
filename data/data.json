@@ -1,1 +1,57 @@
-{"bets":[{"buy_price":1.58311108,"sell_price":1.62806758,"buy_average":1.58311108,"sell_average":1.62806758,"step":0,"type":4},{"buy_price":1.57347754,"sell_price":1.63770112,"buy_average":1.57347754,"sell_average":1.63770112,"step":0,"type":5},{"buy_price":1.5842252,"sell_price":1.60880051,"buy_average":1.60237815,"sell_average":1.60880051,"step":1,"type":1},{"buy_price":1.5778756,"sell_price":1.61522287,"buy_average":1.59595579,"sell_average":1.61522287,"step":1,"type":2},{"buy_price":1.571526,"sell_price":1.62164522,"buy_average":1.58953344,"sell_average":1.62164522,"step":1,"type":3}],"simulate_balance":{"money":90,"coin":20,"holding_money":10,"holding_coin":0},"spend":5,"setup_price":1.60558933,"limitq":1,"ori":{"ori_money":100,"ori_coin":20}}
+{
+  "bets": [
+    {
+      "buy_price": 1.5791354,
+      "sell_price": 1.60894114,
+      "buy_average": 1.60251822,
+      "sell_average": 1.60894114,
+      "step": 1,
+      "type": 1
+    },
+    {
+      "buy_price": 1.5728062,
+      "sell_price": 1.61536406,
+      "buy_average": 1.5960953,
+      "sell_average": 1.61536406,
+      "step": 1,
+      "type": 2
+    },
+    {
+      "buy_price": 1.566477,
+      "sell_price": 1.62178698,
+      "buy_average": 1.58967238,
+      "sell_average": 1.62178698,
+      "step": 1,
+      "type": 3
+    },
+    {
+      "buy_price": 1.5601478,
+      "sell_price": 1.6282099,
+      "buy_average": 1.58324946,
+      "sell_average": 1.6282099,
+      "step": 1,
+      "type": 4
+    },
+    {
+      "buy_price": 1.57361509,
+      "sell_price": 1.63784427,
+      "buy_average": 1.57361509,
+      "sell_average": 1.63784427,
+      "step": 0,
+      "type": 5
+    }
+  ],
+  "simulate_balance": {
+    "money": 85,
+    "coin": 20,
+    "holding_money": 15,
+    "holding_coin": 0
+  },
+  "spend": 5,
+  "setup_price": 1.60572968,
+  "limitq": 1,
+  "ori": {
+    "ori_money": 100,
+    "ori_coin": 20
+  }
+}

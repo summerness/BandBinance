@@ -78,8 +78,8 @@ func (p *PriceData) ToTrade() {
 			total_coin := p.SiL.Coin + p.SiL.HoldingCoin
 			total_money := p.SiL.Money + p.SiL.HoldingMoney + total_coin*price
 			origin_money := p.O.OriMoney + p.O.OriCoin*p.SetupPrice
-			profit := total_money / origin_money
-			coin_w := p.SetupPrice / price
+			profit := (total_money - origin_money)/100
+			coin_w := (price-p.SetupPrice)/100
 			logger.Info(fmt.Sprintf("剩余钱：%f, 剩余币：%f, 订单中的钱：%f, 订单中的币：%f, 如果现在平仓盈利：%f, 币价格涨幅：%f",
 				p.SiL.Money, p.SiL.Coin, p.SiL.HoldingMoney, p.SiL.HoldingCoin, profit, coin_w))
 		}

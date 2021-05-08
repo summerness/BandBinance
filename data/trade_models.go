@@ -43,7 +43,8 @@ func UpdateDeal(dealprice float64) []Trade {
 		var real_coin float64
 		var is_deal int
 		var create_time time.Time
-		rows.Scan(&id, &trade_type, &is_deal, &create_time, &price, &coin, &real_price, &real_coin)
+		var btype int
+		rows.Scan(&id, &trade_type, &is_deal, &create_time, &price, &coin, &real_price, &real_coin,&btype)
 		tds = append(tds, Trade{
 			id,
 			trade_type,
