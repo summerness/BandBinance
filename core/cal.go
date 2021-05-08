@@ -77,7 +77,7 @@ func (p *PriceData) ToTrade() {
 		if len(tras) != 0 {
 			total_coin := p.SiL.Coin + p.SiL.HoldingCoin
 			total_money := p.SiL.Money + p.SiL.HoldingMoney + total_coin*price
-			origin_money := 100 + 21*p.SetupPrice
+			origin_money := p.O.OriMoney + p.O.OriCoin*p.SetupPrice
 			profit := total_money / origin_money
 			coin_w := p.SetupPrice / price
 			logger.Info(fmt.Sprintf("剩余钱：%f, 剩余币：%f, 订单中的钱：%f, 订单中的币：%f, 如果现在平仓盈利：%f, 币价格涨幅：%f",
@@ -118,7 +118,7 @@ func (p *PriceData) ToTrade() {
 				p.SiL.HoldingMoney += p.Spend
 			} else {
 				buyQuantity := strconv.FormatFloat(quantity, 'E', -1, 64)
-				buyPrice := strconv.FormatFloat(each.BuyPrice, 'E', -1, 64)
+				buyPrice := strconv.FormatFloat(price, 'E', -1, 64)
 				_, err := client.NewCreateOrderService().Symbol(config.Symbol).Side(binance.SideTypeBuy).
 					Type(binance.OrderTypeLimit).Price(buyPrice).Quantity(buyQuantity).Do(context.Background())
 				if err != nil {
@@ -145,7 +145,7 @@ func (p *PriceData) ToTrade() {
 				p.SiL.HoldingCoin += quantity
 			} else {
 				sellQuantity := strconv.FormatFloat(quantity, 'E', -1, 64)
-				sellPrice := strconv.FormatFloat(each.SellPrice, 'E', -1, 64)
+				sellPrice := strconv.FormatFloat(price, 'E', -1, 64)
 				_, err := client.NewCreateOrderService().Symbol(config.Symbol).Side(binance.SideTypeSell).
 					Type(binance.OrderTypeLimit).Quantity(sellQuantity).Price(sellPrice).Do(context.Background())
 				if err != nil {

@@ -30,6 +30,8 @@ func InitSaveData() {
 		te := Bet{
 			BuyPrice:  bp,
 			SellPrice: sp,
+			BuyAverage:bp,
+			SellAverage:sp,
 			Step:      0,
 			Type:      k,
 		}
