@@ -22,6 +22,12 @@ func InitSaveData() {
 		return
 	}
 	weightedAvgPrice, _ := strconv.ParseFloat(res[0].WeightedAvgPrice, 64)
+	curSymbol, err := client.NewListPricesService().Symbol(config.Symbol).Do(context.Background())
+	price, _ := strconv.ParseFloat(curSymbol[0].Price, 64)
+	if price < weightedAvgPrice{
+		weightedAvgPrice = price
+	}
+
 	bs := []Bet{}
 	rightSize := len(strings.Split(res[0].WeightedAvgPrice, ".")[1])
 	for k, v := range config.NetRa {
@@ -52,5 +58,4 @@ func InitSaveData() {
 		LimitQ:1,
 	}
 	p.save()
-
 }

@@ -8,10 +8,13 @@ var (
 	Fee = 0.1
 	Simulate = true
 	NetRa = map[int]float64{
-		1:0.2,
-		2:0.6,
-		3:1.0,
-		4:1.4,
-		5:2.0,
+		1:0.3,
+		2:0.4,
+		3:0.5,
+		4:0.6,
+		5:0.7,
 	}
+	Earn = 3.00
+	SaveRa = 4.0
+	MaxStep = 24
 )
