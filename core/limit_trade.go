@@ -83,12 +83,10 @@ func (p *PriceData) realBuy(price float64) {
 	}
 }
 
-func (p *PriceData) simSell(price float64, b_type int) {
-	ra := config.NetRa[b_type] / 100
-	buy_price := price / (1 + ra*2)
-	quantity := p.QuantityBySellBuy(buy_price, price)
-	realPrice := quantity * price * (1 - config.Fee/100) //真实收到的钱
-	go data.InsertOne("Sell", price, quantity, realPrice, quantity, b_type)
+func (p *PriceData) simSell(buyPrice,sellPrice float64, b_type int) {
+	quantity := p.QuantityBySellBuy(buyPrice, sellPrice)
+	realPrice := quantity * sellPrice * (1 - config.Fee/100) //真实收到的钱
+	go data.InsertOne("Sell", sellPrice, quantity, realPrice, quantity, b_type)
 	p.SiL.Coin -= quantity
 	p.SiL.HoldingCoin += quantity
 
@@ -173,7 +171,7 @@ func (p *PriceData) ToLimitTrade() {
 					p.ModifyPrice(each.BuyAverage, 0, "Sell", each.Type)
 				} else {
 					go p.simBuy(price, each.Type)
-					go p.simSell(each.SellPrice, each.Type)
+					go p.simSell(price,each.SellPrice, each.Type)
 				}
 			} else {
 				go p.realBuy(price)
@@ -192,7 +190,7 @@ func (p *PriceData) ToLimitTrade() {
 					p.ModifyPrice(each.SellAverage, 0, "Buy", each.Type)
 				} else {
 					go p.simBuy(each.BuyPrice, each.Type)
-					go p.simSell(price, each.Type)
+					go p.simSell(each.BuyPrice,price, each.Type)
 				}
 			} else {
 				go p.realBuy(each.BuyPrice)
