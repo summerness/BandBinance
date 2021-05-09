@@ -16,8 +16,6 @@ func init() {
 func DelAll()  {
 	stmt, _ := db.Prepare("delete from trade")
 	stmt.Exec()
-	stmt, _ = db.Prepare("delete from market_trade")
-	stmt.Exec()
 }
 
 func InsertOne(tradeType string, price, coin, real_price, real_coin float64, btype int) {

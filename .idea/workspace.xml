@@ -2,20 +2,14 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a5f5f18a-744e-47ef-b305-6b63a2a59277" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/core/limit_trade.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/core/market_trade.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data/market_trade_models.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/11deb0a1-55e8-457e-b22d-ce95e772a11b.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/11deb0a1-55e8-457e-b22d-ce95e772a11b.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/cal.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/market.go" beforeDir="false" afterPath="$PROJECT_DIR$/core/market.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/limit_trade.go" beforeDir="false" afterPath="$PROJECT_DIR$/core/limit_trade.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/data.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/data.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/logs/log20210508.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/logs/log20210509.log" beforeDir="false" afterPath="$PROJECT_DIR$/data/logs/log20210509.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/market_data.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/data/trade.db" beforeDir="false" afterPath="$PROJECT_DIR$/data/trade.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/trade_models.go" beforeDir="false" afterPath="$PROJECT_DIR$/data/trade_models.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

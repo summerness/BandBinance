@@ -42,6 +42,7 @@ type PriceData struct {
 	SetupPrice float64         `json:"setup_price"`
 	LimitQ     int             `json:"limitq"`
 	O          Ori             `json:"ori"`
+	SaveCoin   float64         `json:"save_coin"`
 }
 
 var (
@@ -54,10 +55,11 @@ func init() {
 	//client.BaseURL = "https://api.binance.cc"
 }
 
-func (p *PriceData) QuantityBySellBuy(buyPrice, sellPrice float64) float64  {
+func (p *PriceData) QuantityBySellBuy(buyPrice, sellPrice float64) float64 {
 	max_quantity := round(p.Spend/buyPrice, p.LimitQ)
 	min_quantity := round(p.Spend/sellPrice, p.LimitQ)
 	quantity := min_quantity + (max_quantity-min_quantity)*((1-config.SaveRa)/10)
+	p.SaveCoin = p.SaveCoin + max_quantity - quantity
 	return quantity
 }
 
@@ -82,9 +84,9 @@ func (p *PriceData) realBuy(price float64) {
 }
 
 func (p *PriceData) simSell(price float64, b_type int) {
-	ra := config.NetRa[b_type]/100
+	ra := config.NetRa[b_type] / 100
 	buy_price := price / (1 + ra*2)
-	quantity := p.QuantityBySellBuy(buy_price,price)
+	quantity := p.QuantityBySellBuy(buy_price, price)
 	realPrice := quantity * price * (1 - config.Fee/100) //真实收到的钱
 	go data.InsertOne("Sell", price, quantity, realPrice, quantity, b_type)
 	p.SiL.Coin -= quantity
@@ -95,7 +97,7 @@ func (p *PriceData) simSell(price float64, b_type int) {
 func (p *PriceData) realSell(price float64, b_type int) {
 	ra := config.NetRa[b_type]
 	buy_price := price / (1 + ra)
-	quantity := p.QuantityBySellBuy(buy_price,price)
+	quantity := p.QuantityBySellBuy(buy_price, price)
 	sellQuantity := strconv.FormatFloat(quantity, 'E', -1, 64)
 	sellPrice := strconv.FormatFloat(price, 'E', -1, 64)
 	_, err := client.NewCreateOrderService().Symbol(config.Symbol).Side(binance.SideTypeSell).
@@ -138,10 +140,14 @@ func (p *PriceData) ToLimitTrade() {
 	}
 	for _, each := range p.Bs {
 		if price >= p.SetupPrice*(1+config.Earn/100) {
-			saved_coin := p.SiL.Coin - p.O.OriCoin
+			saved_coin := p.SaveCoin
 			reals := price * saved_coin * (1 - config.Fee/100)
 			if config.Simulate == true {
-				go data.InsertOne("Sell", price, saved_coin, reals, saved_coin, 100)
+				if p.SiL.Coin >= saved_coin{
+					go data.InsertOne("Sell", price, saved_coin, reals, saved_coin, 100)
+					p.SiL.Coin -= saved_coin
+					p.SiL.HoldingCoin += saved_coin
+				}
 			} else {
 				sellQuantity := strconv.FormatFloat(saved_coin, 'E', -1, 64)
 				sellPrice := strconv.FormatFloat(price, 'E', -1, 64)
@@ -152,7 +158,8 @@ func (p *PriceData) ToLimitTrade() {
 					continue
 				}
 			}
-			p.ModifyPrice(price, 0, "Sell", each.Type)
+			InitSaveData()
+			p = InitPriceData()
 		}
 		if each.BuyPrice >= price {
 			if each.Step == config.MaxStep {
