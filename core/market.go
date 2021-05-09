@@ -55,7 +55,7 @@ func InitSaveData() {
 			OriMoney:100,
 			OriCoin:20,
 		},
-		LimitQ:1,
+		LimitQ:2,
 	}
 	p.save()
 }

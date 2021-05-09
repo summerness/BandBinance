@@ -56,16 +56,16 @@ func init() {
 }
 
 func (p *PriceData) QuantityBySellBuy(buyPrice, sellPrice float64) float64 {
-	max_quantity := round(p.Spend/buyPrice, p.LimitQ)
-	min_quantity := round(p.Spend/sellPrice, p.LimitQ)
-	quantity := min_quantity + (max_quantity-min_quantity)*((1-config.SaveRa)/10)
+	max_quantity := round(p.Spend/buyPrice*(1-config.Fee/100), p.LimitQ)
+	min_quantity := round(p.Spend/(1-config.Fee/100)/sellPrice, p.LimitQ)
+	quantity := round(min_quantity+(max_quantity-min_quantity)*((1-config.SaveRa)/10), p.LimitQ)
 	p.SaveCoin = p.SaveCoin + max_quantity - quantity
 	return quantity
 }
 
 func (p *PriceData) simBuy(price float64, b_type int) {
 	quantity := round(p.Spend/price, p.LimitQ)
-	realQuantity := quantity * (1 - config.Fee/100) //真实买到的
+	realQuantity := round(quantity*(1-config.Fee/100), p.LimitQ) //真实买到的
 	data.InsertOne("Buy", price, quantity, p.Spend, realQuantity, b_type)
 	p.SiL.Money -= p.Spend
 	p.SiL.HoldingMoney += p.Spend
@@ -83,10 +83,12 @@ func (p *PriceData) realBuy(price float64) {
 	}
 }
 
-func (p *PriceData) simSell(buyPrice,sellPrice float64, b_type int) {
-	quantity := p.QuantityBySellBuy(buyPrice, sellPrice)
-	realPrice := quantity * sellPrice * (1 - config.Fee/100) //真实收到的钱
-	go data.InsertOne("Sell", sellPrice, quantity, realPrice, quantity, b_type)
+func (p *PriceData) simSell(buyPrice, sellPrice float64, b_type int) {
+	quantity := round(p.QuantityBySellBuy(buyPrice, sellPrice), p.LimitQ)
+	bs := strconv.FormatFloat(buyPrice,'E', -1,64)
+	rightSize := len(strings.Split(bs, ".")[1])
+	realPrice := round(quantity * sellPrice * (1 - config.Fee/100),rightSize) //真实收到的钱
+	data.InsertOne("Sell", sellPrice, quantity, realPrice, quantity, b_type)
 	p.SiL.Coin -= quantity
 	p.SiL.HoldingCoin += quantity
 
@@ -141,7 +143,7 @@ func (p *PriceData) ToLimitTrade() {
 			saved_coin := p.SaveCoin
 			reals := price * saved_coin * (1 - config.Fee/100)
 			if config.Simulate == true {
-				if p.SiL.Coin >= saved_coin{
+				if p.SiL.Coin >= saved_coin {
 					go data.InsertOne("Sell", price, saved_coin, reals, saved_coin, 100)
 					p.SiL.Coin -= saved_coin
 					p.SiL.HoldingCoin += saved_coin
@@ -170,12 +172,12 @@ func (p *PriceData) ToLimitTrade() {
 				if p.Spend > p.SiL.Money { //没钱了
 					p.ModifyPrice(each.BuyAverage, 0, "Sell", each.Type)
 				} else {
-					go p.simBuy(price, each.Type)
-					go p.simSell(price,each.SellPrice, each.Type)
+					p.simBuy(price, each.Type)
+					p.simSell(price, each.SellPrice, each.Type)
 				}
 			} else {
-				go p.realBuy(price)
-				go p.realSell(each.SellPrice, each.Type)
+				p.realBuy(price)
+				p.realSell(each.SellPrice, each.Type)
 			}
 			p.ModifyPrice(price, 1, "Buy", each.Type)
 
@@ -189,12 +191,12 @@ func (p *PriceData) ToLimitTrade() {
 				if quantity > p.SiL.Coin { //没币了
 					p.ModifyPrice(each.SellAverage, 0, "Buy", each.Type)
 				} else {
-					go p.simBuy(each.BuyPrice, each.Type)
-					go p.simSell(each.BuyPrice,price, each.Type)
+					p.simBuy(each.BuyPrice, each.Type)
+					p.simSell(each.BuyPrice, price, each.Type)
 				}
 			} else {
-				go p.realBuy(each.BuyPrice)
-				go p.realSell(price, each.Type)
+				p.realBuy(each.BuyPrice)
+				p.realSell(price, each.Type)
 			}
 			p.ModifyPrice(price, -1, "Sell", each.Type)
 		}

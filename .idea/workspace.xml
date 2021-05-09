@@ -4,8 +4,8 @@
     <list default="true" id="a5f5f18a-744e-47ef-b305-6b63a2a59277" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/limit_trade.go" beforeDir="false" afterPath="$PROJECT_DIR$/core/limit_trade.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/market.go" beforeDir="false" afterPath="$PROJECT_DIR$/core/market.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/data.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/data.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/logs/log20210509.log" beforeDir="false" afterPath="$PROJECT_DIR$/data/logs/log20210509.log" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/trade.db" beforeDir="false" afterPath="$PROJECT_DIR$/data/trade.db" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
