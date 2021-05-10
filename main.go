@@ -1,14 +1,14 @@
 package main
 
 import (
-	"BandBinance/core"
+	"BandBinance/core/simulate"
 	"BandBinance/data"
 )
 
 func main() {
-	core.InitSaveData()
+	simulate.InitSaveData()
 	data.DelAll()
-	p := core.InitPriceData()
+	p := simulate.InitPriceData()
 	for{
 		p.ToLimitTrade()
 	}

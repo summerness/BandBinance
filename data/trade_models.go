@@ -33,7 +33,7 @@ type Trade struct {
 	RealCoin  float64
 }
 
-func UpdateDeal(dealprice float64) []Trade {
+func GetOrder(dealprice float64) []Trade {
 	tds := []Trade{}
 	rows, err := db.Query(fmt.Sprintf("SELECT * FROM trade where is_deal=0 and ((trade_type = 'Buy' and price >= %f) or (trade_type = 'Sell' and price <= %f))", dealprice, dealprice))
 	if err != nil {
@@ -60,7 +60,10 @@ func UpdateDeal(dealprice float64) []Trade {
 			real_coin,
 		})
 	}
-	stmt, _ := db.Prepare("UPDATE trade set is_deal = 1 where is_deal=0 and ((trade_type = 'Buy' and price >= ?) or (trade_type = 'Sell' and price <= ?))")
-	stmt.Exec(dealprice, dealprice)
 	return tds
+}
+
+func UpdateOrder(id int)  {
+	stmt, _ := db.Prepare("UPDATE trade set is_deal = 1 where id = ?")
+	stmt.Exec(id)
 }

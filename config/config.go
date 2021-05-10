@@ -6,7 +6,6 @@ var (
 	SecretKey = ""
 	Symbol = "XRPUSDT"
 	Fee = 0.1
-	Simulate = true
 	NetRa = map[int]float64{
 		1:0.3,
 		2:0.4,
