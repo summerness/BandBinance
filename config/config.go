@@ -14,6 +14,6 @@ var (
 		5:0.7,
 	}
 	Earn = 3.00
-	SaveRa = 4.0
+	SaveRa = 0.4
 	MaxStep = 7
 )

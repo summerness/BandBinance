@@ -79,17 +79,18 @@ func (p *TradeData) countProfit(price float64) {
 	totalMoneyNow := p.SiL.Money + p.SiL.HoldingMoney + totalCoin*price
 	totalMoneyOri := p.SiL.Money + p.SiL.HoldingMoney + totalCoin*p.SetupPrice
 	originMoney := p.O.OriMoney + p.O.OriCoin*p.SetupPrice
+	originMoneyNow := p.O.OriMoney + p.O.OriCoin*price
 	profitNow := totalMoneyNow - originMoney
-	profitRaNow := profitNow / originMoney
+	profitRaNow := profitNow / originMoney *100
 	profitOri := totalMoneyOri - originMoney
-	profitRaOri := profitOri / originMoney
+	profitOriNow := originMoneyNow - originMoney
 	coinReal := price - p.SetupPrice
-	coinRa := coinReal / p.SetupPrice
+	coinRa := coinReal / p.SetupPrice *100
 	logger.Info(fmt.Sprintf("Limit交易方式 剩余钱：%f, 剩余币：%f, 订单中的钱：%f, "+
-		"订单中的币：%f, 按照现价盈利：%f (%f) ,按照策略开始时 %f (%f), 币价：%f (%f)",
+		"订单中的币：%f, 按照现价盈利：%f 钱，百分比 %f ,按照策略开始时价格盈利 %f, 如果不做交易盈利 %f, 币价涨%f ，百分比%f",
 		p.SiL.Money, p.SiL.Coin, p.SiL.HoldingMoney, p.SiL.HoldingCoin, profitNow, profitRaNow,
 
-		profitOri, profitRaOri, coinReal, coinRa))
+		profitOri, profitOriNow, coinReal, coinRa))
 }
 
 func (p *TradeData) sellSaveCoin(price float64) {
@@ -99,9 +100,11 @@ func (p *TradeData) sellSaveCoin(price float64) {
 			go data.InsertOne("Sell", price, p.SaveCoin, realPrice, p.SaveCoin, 100)
 			p.SiL.Coin -= p.SaveCoin
 			p.SiL.HoldingCoin += p.SaveCoin
+			p.SaveCoin = 0
 		}
 	}
 	// 重置网格
+
 }
 
 func (p *TradeData) ToLimitTrade() {
@@ -120,7 +123,7 @@ func (p *TradeData) ToLimitTrade() {
 			p.SiL.HoldingCoin -= each.RealCoin
 			p.SiL.Money += each.RealPrice
 		}
-		go data.UpdateOrder(each.Id)
+		data.UpdateOrder(each.Id)
 	}
 	if len(openOrders) > 0 {
 		p.countProfit(price)
@@ -168,6 +171,7 @@ func (p *TradeData) ModifyPrice(dealPrice float64, step int, tradeType string, b
 			}
 			p.Bs[index].BuyPrice = round(dealPrice*(1-config.NetRa[each.Type]/100), rightSize)
 			p.Bs[index].SellPrice = round(dealPrice*(1+config.NetRa[each.Type]/100), rightSize)
+
 			p.Bs[index].Step += step
 			break
 		}
