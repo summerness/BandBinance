@@ -46,14 +46,13 @@ type TradeData struct {
 
 
 
-func (p *TradeData) quantityBySellBuy(buyPrice, sellPrice float64) float64 {
+func (p *TradeData) quantityBySellBuy(buyPrice, sellPrice float64) (float64,float64) {
 	maxQuantity := p.roundQuantity(p.Spend / buyPrice * (1 - config.Fee/100))      //实际买到的币
 	realSellSpend := p.Spend / (1 - config.Fee/100)                                //实际应该卖到不亏的价格trade
 	minQuantity := p.roundQuantity(realSellSpend / sellPrice)                      //最少卖出币
 	savedQuantity := maxQuantity - minQuantity                                     //实际可留下的利润
 	realSavedQuantity := p.roundQuantity((1 - config.SaveRa) / 10 * savedQuantity) //按照设置留下利润
-	p.SaveCoin += realSavedQuantity
-	return minQuantity + realSavedQuantity
+	return minQuantity + realSavedQuantity,realSavedQuantity
 }
 
 func (p *TradeData) simLimitBuy(price float64, bType int) {
@@ -65,13 +64,14 @@ func (p *TradeData) simLimitBuy(price float64, bType int) {
 }
 
 func (p *TradeData) simLimitSell(buyPrice, sellPrice float64, bType int) {
-	quantity := p.quantityBySellBuy(buyPrice, sellPrice)
+	quantity,reQ := p.quantityBySellBuy(buyPrice, sellPrice)
 	bs := strconv.FormatFloat(buyPrice, 'E', -1, 64)
 	rightSize := len(strings.Split(bs, ".")[1])
 	realPrice := round(quantity*sellPrice*(1-config.Fee/100), rightSize) //真实收到的钱
 	data.InsertOne("Sell", sellPrice, quantity, realPrice, quantity, bType)
 	p.SiL.Coin -= quantity
 	p.SiL.HoldingCoin += quantity
+	p.SaveCoin += reQ
 }
 
 func (p *TradeData) countProfit(price float64) {
@@ -94,7 +94,7 @@ func (p *TradeData) countProfit(price float64) {
 
 func (p *TradeData) sellSaveCoin(price float64) {
 	if price > p.SetupPrice*(1+config.Earn/100) {
-		if p.SiL.Coin > p.SaveCoin && p.SaveCoin != 0{
+		if p.SiL.Coin > p.SaveCoin && p.SaveCoin > 0{
 			realPrice := price * p.SaveCoin * (1 - config.Fee/100) //真实收到的钱
 			go data.InsertOne("Sell", price, p.SaveCoin, realPrice, p.SaveCoin, 100)
 			p.SiL.Coin -= p.SaveCoin
@@ -140,7 +140,7 @@ func (p *TradeData) ToLimitTrade() {
 				p.ModifyPrice(each.BuyAverage, 1, "Sell", each.Type)
 			}
 		} else if each.SellPrice < price {
-			quantity := p.quantityBySellBuy(each.BuyPrice, price)
+			quantity,_ := p.quantityBySellBuy(each.BuyPrice, price)
 			if each.Step == 0 {
 				p.ModifyPrice(price, 0, "Sell", each.Type)
 				continue
