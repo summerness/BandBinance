@@ -1,19 +1,8 @@
 package config
 
 var (
-	DataPath  = "./data/data.json"
-	ApiKey    = ""
-	SecretKey = ""
-	Symbol = "XRPUSDT"
-	Fee = 0.1
-	NetRa = map[int]float64{
-		1:0.3,
-		2:0.4,
-		3:0.5,
-		4:0.6,
-		5:0.7,
-	}
-	Earn = 3.00
-	SaveRa = 0.4
-	MaxStep = 7
+	BenefitSleep     = 10
+	Sleep            = 10
+	CancelOrderSleep = 10
+	SellSleep        = 10
 )
