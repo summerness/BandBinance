@@ -24,3 +24,9 @@ gen
 # vendor/
 **/*.log
 app/*
+
+# 配置文件
+config/config.yaml
+
+reamke.txt
+test.go

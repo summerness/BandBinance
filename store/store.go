@@ -6,21 +6,18 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"log"
 	"strconv"
 )
 
 var DB = Open()
 
 func Open() *gorm.DB {
-	//open, err := gorm.Open(sqlite.Open("trade.db"), &gorm.Config{})
-	dsn := "root:root@tcp(127.0.0.1:3306)/tr?charset=utf8mb4&parseTime=True&loc=Local"
+	// open, err := gorm.Open(sqlite.Open("trade.db"), &gorm.Config{})
+	dsn := "root:mCvw1SDpdccwSzlJ@tcp(127.0.0.1:30306)/tr?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-	}
-	err = db.AutoMigrate(&domain.GridTrade{})
-	if err != nil {
-		panic(err)
-
+		log.Fatal(`数据库连接错误`)
 	}
 	return db
 }

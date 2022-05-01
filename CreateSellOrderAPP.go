@@ -18,30 +18,31 @@ import (
 
 func main() {
 	prefix := "创建卖单"
-	for true {
+	t := time.NewTicker(time.Duration(config.Run.SellSleep) * time.Second)
+	for {
 		// 找出币配置
 		configs, err := store.GridSymbolConfig.FindEnable()
 		if err != nil {
-			log.Printf("%s 币种配置没有", prefix)
+			log.Printf("%s 币种配置没有 %s", prefix, err)
 			continue
 		}
 
 		for i := range configs {
-			err = ProcessBuyOrderForSell(configs[i])
+			err = ProcessBuyOrderForSell(&configs[i])
 			if err != nil {
-				log.Printf("%s 处理币种配置, id=%s, symbol=%s, %s", prefix, configs[i].ID, configs[i].Symbol, err)
+				log.Printf("%s 处理币种配置时出现错误, id=%s, symbol=%s,err: %s", prefix, configs[i].ID, configs[i].Symbol, err)
 			}
 		}
-
-		time.Sleep(time.Duration(config.SellSleep) * time.Second)
+		fmt.Println(prefix, `检查完成`)
+		<-t.C
 	}
 }
 
 // ProcessBuyOrderForSell 遍历买入单, 更新状态, 并且创建卖出单, 事务回滚,
-func ProcessBuyOrderForSell(symbolConfig domain.GridSymbolConfig) error {
-	gridTrades, err := strategy.GetTrades(symbolConfig)
+func ProcessBuyOrderForSell(symbolConfig *domain.GridSymbolConfig) error {
+	gridTrades, err := strategy.ProcessGridTrades(symbolConfig)
 	if err != nil {
-		return errors.Wrapf(err, fmt.Sprintf("获取网格, %s", err))
+		return errors.Wrapf(err, fmt.Sprintf("获取网格时出现错误, %s", err))
 	}
 	orders, err := store.FindTradeOrder(symbolConfig.Symbol, string(binance.SideTypeBuy), string(binance.OrderStatusTypeNew), symbolConfig.Version)
 	if err != nil {
@@ -71,13 +72,14 @@ func ProcessBuyOrderForSell(symbolConfig domain.GridSymbolConfig) error {
 				// 找到网格
 				gridTrade := gridTrades[orders[i].Index]
 
+				// 创建卖单
 				var sellOrder domain.TradeOrder
 				sellOrder.TradeType = string(binance.SideTypeSell)
 				sellOrder.Index = orders[i].Index
 				sellOrder.Version = orders[i].Version
 				sellOrder.Quantity = orders[i].Quantity
 				sellOrder.BuyPrice = gridTrade.HighPrice
-				sellOrder.CreateTime = time.Now().UnixMilli()
+				sellOrder.CreateTime = time.Now().UnixNano() / 1e6
 				sellOrder.Status = string(binance.OrderStatusTypeNew)
 				sellOrder.ClientId = orders[i].ClientId
 				sellOrder.Symbol = orders[i].Symbol
@@ -90,7 +92,7 @@ func ProcessBuyOrderForSell(symbolConfig domain.GridSymbolConfig) error {
 				log.Printf("卖出单id=%d", sellOrder.ID)
 
 				// 创建卖出单
-				clientId := strconv.FormatInt(time.Now().UnixMilli(), 10)
+				clientId := strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
 				binanceOrderId, err := exchange.CreateOrder(binanceOrder.Quantity, gridTrade.HighPrice, binance.SideTypeSell, clientId, symbolConfig.Symbol, symbolConfig.RetryTimes, float64(symbolConfig.RetryGap))
 				if err != nil {
 					log.Printf("创建卖出单失败, 买入单id=%d", binanceOrder.OrderId)
@@ -103,7 +105,7 @@ func ProcessBuyOrderForSell(symbolConfig domain.GridSymbolConfig) error {
 					log.Printf("更新卖出单order_id失败, 买入单id=%d, order_id = %d", binanceOrder.ID, binanceOrder.OrderId)
 					return err
 				}
-				notify.FeiShu.NotifyTrade(sellOrder)
+				notify.DefaultNotify.Trade(sellOrder)
 			}
 			return nil
 		})

@@ -9,23 +9,28 @@ import (
 	"log"
 )
 
-func AnalyseScene(history domain.History) (domain.Scene, error) {
+func Scene(history domain.History) (domain.Scene, error) {
 	return domain.GRID, nil
 }
 
-func AnalyseProfit() error {
-	//panic("")
+func Profit() error {
+	// panic("")
 	return nil
 }
 
+// 计算收益?
 func CalculateBenefit() {
 	// 获取总交易对
 	tradePairTotal, err := store.TradeOrder.CountClientId()
+	if err != nil {
+		log.Printf("获取总交易对时出现错误: %s", err)
+		return
+	}
 
 	// 已完成交易对的clientId
 	clientIds, err := store.TradeOrder.FindCompletedGrid()
 	if err != nil {
-		log.Printf("计算收益, %s", err)
+		log.Printf("获取已完成交易对的clientId时出现错误: %s", err)
 		return
 	}
 
@@ -56,7 +61,9 @@ func CalculateBenefit() {
 	// 挂单未买入
 	createdNotBuyTotal, createdNotBuyTotalLockCost := CalculateCreatedNotBuy()
 
-	notify.FeiShu.DoNotify(fmt.Sprintf("收益按照网格成功交易计算 \n累计收益 %.2f BUSD , 累计买入 %.2f BUSD, 累计卖出 %.2f BUSD \n买入未卖出单: %d,  %.2f BUSD \n挂单未买入: %d , %.2f BUSD \n总交易对: %d , 网格成功数: %d, 网格成功率: %.2f ",
+	notify.DefaultNotify.Do(fmt.Sprintf(
+		"收益按照网格成功交易计算 \n累计收益 %.2f BUSD , 累计买入 %.2f BUSD, "+
+			"累计卖出 %.2f BUSD \n买入未卖出单: %d,  %.2f BUSD \n挂单未买入: %d , %.2f BUSD \n总交易对: %d , 网格成功数: %d, 网格成功率: %.2f ",
 		benefit-cost, cost, benefit,
 		buyInNotSellTotal, buyInNotSellTotalLockCost,
 		createdNotBuyTotal, createdNotBuyTotalLockCost,

@@ -13,13 +13,15 @@ import (
 // 更新卖单状态, 并计算收益率, 通知飞书
 func main() {
 	analyse.CalculateBenefit()
-	for true {
+	ticker := time.NewTicker(time.Duration(config.Run.BenefitSleep) * time.Second)
+	defer ticker.Stop()
+
+	for {
 		log.Printf("开始 更新卖单状态, 并计算收益率, 通知飞书")
 		ProcessSellOrder()
 		log.Printf("结束 更新卖单状态, 并计算收益率, 通知飞书")
-		time.Sleep(time.Duration(config.BenefitSleep) * time.Second)
+		<-ticker.C
 	}
-
 }
 
 // ProcessSellOrder 处理卖单状态

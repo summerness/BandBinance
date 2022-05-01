@@ -7,13 +7,13 @@ import (
 	"time"
 )
 
-func Retry(tryTimes int, sleep float64, callback func() error) error {
+// 用于失败时重新尝试运行 指定重试次数和休眠时间
+func Retry(tryNumber int, sleep float64, callback func() error) error {
 	var res = errors.New("重试未知错误")
 
-	for i := 1; i <= tryTimes; i++ {
+	for i := 1; i <= tryNumber; i++ {
 		err := callback()
 		if err == nil {
-
 			return nil
 		}
 		// 只有网络异常才重试
@@ -22,8 +22,8 @@ func Retry(tryTimes int, sleep float64, callback func() error) error {
 			res = err
 			break
 		}
-		if i == tryTimes {
-			return errors.New(fmt.Sprintf("重试超过次数: %d", tryTimes))
+		if i == tryNumber {
+			return errors.New(fmt.Sprintf("重试超过次数: %d", tryNumber))
 		}
 		time.Sleep(time.Duration(sleep))
 	}
