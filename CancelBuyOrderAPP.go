@@ -7,8 +7,9 @@ import (
 )
 
 func main() {
-	for true {
+	t := time.NewTicker(time.Duration(config.Run.CancelOrderSleep) * time.Second)
+	for {
 		risk.CancelOrder.ProcessCancel()
-		time.Sleep(time.Duration(config.CancelOrderSleep) * time.Second)
+		<-t.C
 	}
 }

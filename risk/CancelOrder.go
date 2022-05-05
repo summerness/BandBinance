@@ -24,14 +24,7 @@ type cancelOrderProcessor struct {
 
 func (c *cancelOrderProcessor) ProcessCancel() {
 	// 找出3小时前的NEW买入单, 取消他
-	now := time.Now()
-	duration, err := time.ParseDuration("-1h")
-	if err != nil {
-		log.Printf("时间计算出错 %+v", err)
-		return
-	}
-	h3 := now.Add(3 * duration)
-	orders, err := store.TradeOrder.FindNewBuyOrderByCreatedTime(h3)
+	orders, err := store.TradeOrder.FindNewBuyOrderByCreatedTime(time.Now().Add(-3 * time.Hour))
 	if err != nil {
 		log.Printf("获取订单, %+v", err)
 		return
@@ -42,14 +35,13 @@ func (c *cancelOrderProcessor) ProcessCancel() {
 }
 
 func doCancelOrder(order *domain.TradeOrder) {
+	// 开启事务
 	err := store.Tx(func(tx *gorm.DB) error {
-		// 开启事务
-		var err error = nil
 		// 更新数据库
 		order.Status = string(binance.OrderStatusTypeCanceled)
-		order.CancelTime = time.Now().UnixMilli()
+		order.CancelTime = time.Now().UnixNano() / 1e6
 
-		err = store.TradeOrder.Update(tx, order)
+		err := store.TradeOrder.Update(tx, order)
 		if err != nil {
 			return errors.Wrapf(err, "更新订单取消失败")
 		}
@@ -68,5 +60,5 @@ func doCancelOrder(order *domain.TradeOrder) {
 	}
 	msg := fmt.Sprintf("取消订单成功, id=%d, order_id = %d, symbol=%s", order.ID, order.OrderId, order.Symbol)
 	log.Printf(msg)
-	notify.FeiShu.DoNotify(msg)
+	notify.DefaultNotify.Do(msg)
 }

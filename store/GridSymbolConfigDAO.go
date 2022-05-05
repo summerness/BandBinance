@@ -13,6 +13,14 @@ func init() {
 		panic(err)
 
 	}
+	err = DB.AutoMigrate(&domain.GridTrade{})
+	if err != nil {
+		panic(err)
+	}
+	err = DB.AutoMigrate(&domain.TradeOrder{})
+	if err != nil {
+		panic(err)
+	}
 }
 
 type GridSymbolConfigDAO interface {

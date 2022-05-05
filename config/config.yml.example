@@ -1,0 +1,20 @@
+Run:
+  BenefitSleep: 10 # 更新卖单状态间隔(s)
+  Sleep: 10 # 购买间隔
+  SellSleep: 10 # 卖出检查间隔
+  CancelOrderSleep: 10
+
+Auth:
+  ApiKey:
+  SecretKey:
+
+Proxy:
+  Switch: 0
+  Path:
+
+Notify:
+  FeiShu:
+    Url:
+  DD:
+    Url:
+    Secret:

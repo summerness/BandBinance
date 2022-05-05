@@ -9,33 +9,33 @@ import (
 )
 
 func TestGetOrder(t *testing.T) {
-	////order, err := GetOrder(293474365,)
-	//if err != nil {
+	// //order, err := GetOrder(293474365,)
+	// if err != nil {
 	//	return
-	//}
-	//log.Printf("%d", order.OrderId)
+	// }
+	// log.Printf("%d", order.OrderId)
 }
 
 func TestCreateOrder(t *testing.T) {
 
-	formatInt := strconv.FormatInt(time.Now().UnixMilli(), 10)
-	order, err := CreateOrder(0.18, 60, binance.SideTypeBuy, formatInt, "AXSBUSD", 100, 100)
+	formatInt := strconv.FormatInt(time.Now().UnixNano() / 1e6, 10)
+	order, err := CreateOrder(0.18, 60, binance.SideTypeBuy, formatInt, "AXSBUSD", 100, 1000)
 	if err != nil {
 		return
 	}
 	log.Printf("%d", order)
 
-	order, err = CreateOrder(0.18, 60, binance.SideTypeBuy, formatInt, "AXSBUSD", 100, 100)
+	order, err = CreateOrder(0.18, 60, binance.SideTypeBuy, formatInt, "AXSBUSD", 100, 1000)
 	if err != nil {
 		log.Printf("正常失败")
 	}
 	log.Printf("%d", order)
 
-	order, err = CreateOrder(0.18, 80, binance.SideTypeSell, formatInt, "AXSBUSD", 100, 100)
+	order, err = CreateOrder(0.18, 80, binance.SideTypeSell, formatInt, "AXSBUSD", 100, 1000)
 	if err != nil {
 		panic(err)
 	}
-	order, err = CreateOrder(0.18, 80, binance.SideTypeSell, formatInt, "AXSBUSD", 100, 100)
+	order, err = CreateOrder(0.18, 80, binance.SideTypeSell, formatInt, "AXSBUSD", 100, 1000)
 	if err != nil {
 		log.Printf("正常失败")
 	}

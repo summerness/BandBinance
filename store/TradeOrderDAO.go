@@ -10,14 +10,7 @@ import (
 
 var TradeOrder TradeOrderDAO = &TradeOrderDAOImpl{}
 
-func init() {
-	err := DB.AutoMigrate(&domain.GridSymbolConfig{})
-	if err != nil {
-		panic(err)
-
-	}
-}
-
+// 交易的订单信息 做成接口是为了可以随时更换数据来源吗
 type TradeOrderDAO interface {
 	FindCompletedGrid() ([]int64, error)
 	CalculateFutureBenefitByClientId(int64) (float64, error)
@@ -30,6 +23,7 @@ type TradeOrderDAO interface {
 	CreateTradeOrder(tx *gorm.DB, d *domain.TradeOrder) error
 }
 
+// 实施者?
 type TradeOrderDAOImpl struct {
 }
 
@@ -117,6 +111,7 @@ func (t *TradeOrderDAOImpl) FindTradeOrderByClientIds(ids []int64) ([]domain.Tra
 
 func (t *TradeOrderDAOImpl) CountClientId() (int, error) {
 	var r int
+	// todo: 可以试着对比下 SELECT COUNT(DISTINCT client_id) FROM `trade_orders` 的执行效率
 	result := DB.Raw("select count(1) from (select distinct(client_id) from trade_orders) a").Scan(&r)
 	if result.Error != nil {
 		return r, result.Error
@@ -129,6 +124,7 @@ func (t *TradeOrderDAOImpl) CountClientId() (int, error) {
 
 func (t *TradeOrderDAOImpl) FindCompletedGrid() ([]int64, error) {
 	var r []int64
+	// todo: 这里的 having count(1) > 1 看不懂
 	result := DB.Raw("select client_id from trade_orders where status = ? group by client_id having count(1) > 1", binance.OrderStatusTypeFilled).Scan(&r)
 	if result.Error != nil {
 		return r, result.Error

@@ -3,7 +3,6 @@ package exchange
 import (
 	"BandBinance/config"
 	"BandBinance/domain"
-	"BandBinance/notify"
 	"BandBinance/util"
 	"context"
 	"errors"
@@ -12,6 +11,8 @@ import (
 	"github.com/adshao/go-binance/v2/delivery"
 	"github.com/adshao/go-binance/v2/futures"
 	"log"
+	"net/http"
+	"net/url"
 	"strconv"
 	"sync"
 	"time"
@@ -46,22 +47,39 @@ type Biance struct {
 }
 
 func NewBiance() *Biance {
-	client := binance.NewClient(config.AK, config.SK)
-	futuresClient := binance.NewFuturesClient(config.AK, config.SK)   // USDT-M Futures
-	deliveryClient := binance.NewDeliveryClient(config.AK, config.SK) // Coin-M Futures
+
+	client := binance.NewClient(config.Auth.ApiKey, config.Auth.SecretKey)
+	futuresClient := binance.NewFuturesClient(config.Auth.ApiKey, config.Auth.SecretKey)   // USDT-M Futures
+	deliveryClient := binance.NewDeliveryClient(config.Auth.ApiKey, config.Auth.SecretKey) // Coin-M Futures
+
+	// 代理设置:
+	if config.Proxy.Switch {
+		httpTransport := &http.Transport{
+			Proxy: func(_ *http.Request) (*url.URL, error) {
+				return url.Parse(config.Proxy.Path)
+			},
+		}
+		httpClient := &http.Client{
+			Transport: httpTransport,
+		}
+		client.HTTPClient = httpClient
+		futuresClient.HTTPClient = httpClient
+		deliveryClient.HTTPClient = httpClient
+	}
+
 	biance := Biance{bc: client, fc: futuresClient, dc: deliveryClient}
 	return &biance
 }
 
 // LoadPrice 获取最新价格
 func LoadPrice(symbol string) (float64, error) {
-	lockPriceMap.Lock()
-	defer lockPriceMap.Unlock()
+	lockPriceMap.RLock()
+	defer lockPriceMap.RUnlock()
 	var res float64
 	res = priceMap[symbol]
 	if res == 0 {
 		sprintf := fmt.Sprintf("没有此价格, 建议换币种, %s", symbol)
-		notify.FeiShu.DoNotify(sprintf)
+		// notify.DD.Do(sprintf)
 		return 0, errors.New(sprintf)
 	}
 	return res, nil
@@ -91,7 +109,7 @@ func GetPrice() error {
 // GetOrder 获取订单
 func GetOrder(orderId int64, symbol string) (domain.TradeOrder, error) {
 	var order domain.TradeOrder
-	err := util.Retry(100, 100, func() error {
+	err := util.Retry(100, 1000, func() error {
 		response, err := b.bc.NewGetOrderService().Symbol(symbol).
 			OrderID(orderId).Do(context.Background())
 		if err != nil {
@@ -119,7 +137,6 @@ func CreateOrder(quantity float64, price float64, sideType binance.SideType, cli
 			Side(sideType).Type(binance.OrderTypeLimit).
 			TimeInForce(binance.TimeInForceTypeGTC).Quantity(q).
 			Price(p).NewClientOrderID(clientId).Do(context.Background())
-
 		if err != nil {
 			return err
 		}
@@ -142,7 +159,7 @@ func processDuplicateOrderSentError(price float64, sideType binance.SideType, cl
 	if err != nil {
 		return res, err
 	}
-	orders, err := b.bc.NewListOrdersService().Symbol(symbol).StartTime(parseInt).EndTime(time.Now().UnixMilli()).
+	orders, err := b.bc.NewListOrdersService().Symbol(symbol).StartTime(parseInt).EndTime(time.Now().UnixNano() / 1e6).
 		Do(context.Background())
 	if err != nil {
 		return domain.TradeOrder{}, err
@@ -162,11 +179,13 @@ func processDuplicateOrderSentError(price float64, sideType binance.SideType, cl
 	return res, errors.New(fmt.Sprintf("找不到重复订单, 人工check, clientId = %s", clientId))
 }
 
+// 将币安订单结构映射为TradeOrder
 func convert(order *binance.Order) (domain.TradeOrder, error) {
-
 	buyPrice, err := strconv.ParseFloat(order.Price, 64)
+	if err != nil {
+		return domain.TradeOrder{}, err
+	}
 	quantity, err := strconv.ParseFloat(order.OrigQuantity, 64)
-
 	if err != nil {
 		return domain.TradeOrder{}, err
 	}
@@ -177,7 +196,7 @@ func convert(order *binance.Order) (domain.TradeOrder, error) {
 		Status:          string(order.Status),
 		BuyPrice:        buyPrice,
 		BuySuccessPrice: buyPrice,
-		DealTime:        time.Unix(order.UpdateTime, 0).UnixMilli(),
+		DealTime:        time.Unix(order.UpdateTime, 0).UnixNano() / 1e6,
 		Quantity:        quantity,
 	}, nil
 }
@@ -190,20 +209,18 @@ func UpdateBalance() error {
 		return err
 	}
 	balances := response.Balances
-	if len(balances) > 1 {
-		for i := range balances {
-			free, err := strconv.ParseFloat(balances[i].Free, 64)
-			if err != nil {
-				return err
-			}
-			balanceMap[balances[i].Asset] = free
+	for i := range balances {
+		free, err := strconv.ParseFloat(balances[i].Free, 64)
+		if err != nil {
+			return err
 		}
+		balanceMap[balances[i].Asset] = free
 	}
 	return nil
 }
 
 func GetBalance(symbol string) (float64, error) {
-	lockBalanceMap.Lock()
-	defer lockBalanceMap.Unlock()
+	lockBalanceMap.RLock()
+	defer lockBalanceMap.RUnlock()
 	return balanceMap[symbol], nil
 }

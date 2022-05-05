@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -24,53 +25,64 @@ func (g *GridStrategy) Process() {
 		return
 	}
 	for i := range symbolConfigs {
-		err := exchange.GetPrice()
-		if err != nil {
-			log.Printf("更新价格失败, %s", err)
-			return
-		}
-		goBuyOrder(symbolConfigs[i])
+		goBuyOrder(&symbolConfigs[i])
 	}
 }
 
-func goBuyOrder(symbolConfig domain.GridSymbolConfig) {
-	gridTrades, err := GetTrades(symbolConfig)
+func goBuyOrder(symbolConfig *domain.GridSymbolConfig) {
+	// 更新价格
+	err := exchange.GetPrice()
 	if err != nil {
+		log.Printf("更新价格失败, %s", err)
+		return
+	}
+	// 更新余额
+	err = exchange.UpdateBalance()
+	if err != nil {
+		log.Printf("获取用户余额失败, %s", err)
+		return
+	}
+	gridTrades, err := ProcessGridTrades(symbolConfig)
+	if err != nil {
+		return
+	}
+	// fmt.Printf("gridTrades: %+v\n", gridTrades)
+	// 获取当前价格
+	price, err := exchange.LoadPrice(symbolConfig.Symbol)
+	if err != nil {
+		log.Println("获取当前价格时出现错误: ", err)
 		return
 	}
 
-	// 获取当前价格
-	price, err := exchange.LoadPrice(symbolConfig.Symbol)
-	err = exchange.UpdateBalance()
-	balance, err := exchange.GetBalance("BUSD")
-	if err != nil {
-		return
-	}
-	if err != nil {
-		return
-	}
 	log.Printf("币: %s 当前价格: %f", symbolConfig.Symbol, price)
 
 	// 如果 当前价格 > 压力位 , 则风控告警, 看看是否需要人为调整压力位
 	if price > symbolConfig.Stress {
+		log.Println("当前价格 > 压力位")
 		return
 	}
 	// 如果 当前价格 < 阻力位 , 则风控告警, 看看是否需要人为调整阻力位
 	if price < symbolConfig.Resistance {
+		log.Println("当前价格 < 阻力位")
 		return
 	}
 	// 寻找当前价的靠近的网格下界, 是否当前网格有未完成的订单, 如果有 则跳过, 没有 则挂单
 	closeGrid, err := findCloseGrid(gridTrades, price)
 	if err != nil {
-		log.Printf(fmt.Sprintf("找不到靠近的网格, %s", err))
+		log.Println("找不到靠近的网格: ", err)
 		return
 	}
-
-	// 余额比价格小, 退出
+	balance, err := exchange.GetBalance("BUSD")
+	if err != nil {
+		log.Println("获取余额时出现错误: ", err)
+		return
+	}
+	// 余额<价格*数量(需要金额) , 退出
 	if balance < closeGrid.LowPrice*closeGrid.Quantity {
+		log.Println("余额 < 需要金额 本次无效退出")
 		return
 	}
-	//事务控制
+	// 事务控制
 	err = store.Tx(func(tx *gorm.DB) error {
 		// 买入单优化, 买单, 挂单未买入, 暂停买入
 		exist, err := store.ExistNotBuyInGridTradeOrder(tx, symbolConfig.Symbol, closeGrid.Version, closeGrid.Index)
@@ -83,10 +95,10 @@ func goBuyOrder(symbolConfig domain.GridSymbolConfig) {
 
 		// 创建买单
 		var buyOrder domain.TradeOrder
-		clientId := time.Now().UnixMilli()
+		clientId := time.Now().UnixNano() / 1e6
 		buyOrder.TradeType = string(binance.SideTypeBuy)
 		buyOrder.Status = string(binance.OrderStatusTypeNew)
-		buyOrder.CreateTime = time.Now().UnixMilli()
+		buyOrder.CreateTime = time.Now().UnixNano() / 1e6
 		buyOrder.Version = closeGrid.Version
 		buyOrder.Index = closeGrid.Index
 		buyOrder.Quantity = closeGrid.Quantity
@@ -123,25 +135,12 @@ func goBuyOrder(symbolConfig domain.GridSymbolConfig) {
 	}
 }
 
-func GetTrades(symbolConfig domain.GridSymbolConfig) ([]domain.GridTrade, error) {
-	// 获取交易网格
-	grid, err := newGrid(symbolConfig.ROI, symbolConfig.Amount, symbolConfig.Stress, symbolConfig.Resistance, symbolConfig.Symbol)
-	if err != nil {
-		return nil, errors.Wrap(err, "获取交易网格失败")
-	}
-	// 计算静态交易网格
-	gridTrades, err := ProcessGridTrades(symbolConfig, grid)
-	if err != nil {
-		return nil, errors.Wrap(err, "计算静态交易网格失败")
-	}
-	return gridTrades, err
-}
-
-// 找到最靠近价格的网格
+// 找到最靠近价格的网格  刚好比网格下端高一点
 func findCloseGrid(trades []domain.GridTrade, price float64) (domain.GridTrade, error) {
 	res := 0
 	for i := range trades {
 		if trades[i].LowPrice < price {
+			// 这一步不用检查吧  毕竟是从小往大按照顺序排列的
 			if trades[res].LowPrice < trades[i].LowPrice {
 				res = i
 			}
@@ -150,37 +149,43 @@ func findCloseGrid(trades []domain.GridTrade, price float64) (domain.GridTrade, 
 	return trades[res], nil
 }
 
-// ProcessGridTrades 计算网格
-func ProcessGridTrades(symbolConfig domain.GridSymbolConfig, grid *domain.Grid) ([]domain.GridTrade, error) {
-	trades := make([]domain.GridTrade, 0)
-	n := 0
-	lp := grid.Resistance
-	for true {
-		hP := lp * (1 + grid.ROI)
-		if hP > symbolConfig.Stress {
-			break
+var once sync.Once
+
+// ProcessGridTrades 计算网格  处理网格交易
+// 从最低价格开始 每次加一个利润率百分比 直到大于上限才跳出
+func ProcessGridTrades(symbolConfig *domain.GridSymbolConfig) (trades []domain.GridTrade, err error) {
+	once.Do(func() {
+		n := 0
+		lp := symbolConfig.Resistance // 阻力位  从最低价格开始
+		for {
+			hP := lp * (1 + symbolConfig.ROI) // 阻力位 * (1+收益率) ? == 最低价格 * 1.2 == 当前价格
+			if hP > symbolConfig.Stress {     // 上限 > 压力位, 全部卖出的价格 则取消操作
+				break
+			}
+			// 数量 = 每单金额 / 上一格的价格 ??
+			qu := symbolConfig.Amount / lp
+			trades = append(trades, domain.GridTrade{
+				Id:        store.GenGridTradeId(symbolConfig.Symbol, symbolConfig.Version, n),
+				Symbol:    symbolConfig.Symbol,
+				HighPrice: hP,
+				LowPrice:  lp,
+				Index:     n,
+				Version:   symbolConfig.Version,
+				Quantity:  qu,
+			})
+			lp = hP
+			n++
 		}
-		// 每次买入 10 busd
-		qu := symbolConfig.Amount / lp
-		trades = append(trades, domain.GridTrade{
-			Id:        store.GenGridTradeId(symbolConfig.Symbol, symbolConfig.Version, n),
-			Symbol:    symbolConfig.Symbol,
-			HighPrice: hP,
-			LowPrice:  lp,
-			Index:     n,
-			Version:   symbolConfig.Version,
-			Quantity:  qu,
-		})
-		lp = hP
-		n++
-	}
-	_, err := store.SaveTrades(trades)
-	if err != nil {
-		return nil, err
-	}
+		_, err = store.SaveTrades(trades) // 将网格保存在数据库
+		if err != nil {
+			fmt.Println(`将网格保存在数据库时出现错误`)
+		}
+	})
+
 	return trades, nil
 }
 
+// newGrid 像是一个中间产物  已经删除了对其的调用  日后若不使用可删除
 func newGrid(roi float64, amount float64, stress float64, resistance float64, symbol string) (*domain.Grid, error) {
 	return &domain.Grid{
 		Symbol:     symbol,

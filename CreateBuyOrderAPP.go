@@ -12,7 +12,10 @@ import (
 
 func main() {
 	var num int64 = 0
-	for true {
+	ticker := time.NewTicker(time.Duration(config.Run.Sleep) * time.Second)
+	defer ticker.Stop()
+
+	for {
 		// 采集数据
 		err := gather.GatherData()
 		if err != nil {
@@ -26,7 +29,7 @@ func main() {
 			return
 		}
 		// 数据回测趋势
-		scene, err := analyse.AnalyseScene(data)
+		scene, err := analyse.Scene(data)
 		if err != nil {
 			log.Printf("%s", err)
 			return
@@ -42,15 +45,15 @@ func main() {
 		// 策略推算交易
 		routeStrategy.Process()
 
-		//交易收益分析
-		err = analyse.AnalyseProfit()
+		// 交易收益分析
+		err = analyse.Profit()
 		if err != nil {
 			log.Printf("%s", err)
 			return
 		}
 		num++
-		log.Printf("第 %d 轮结束, 休眠 %d s", num, config.Sleep)
-		time.Sleep(time.Duration(config.Sleep) * time.Second)
+		log.Printf("第 %d 轮结束, 休眠 %d s", num, config.Run.Sleep)
+		<-ticker.C
 	}
 
 }
